@@ -439,6 +439,14 @@ Lang["I_17329"] = "Mano de Lucifron"
 Lang["I_17331"] = "Mano de Gehennas"
 Lang["I_17330"] = "Mano de Sulfuron"
 Lang["I_17333"] = "Quintaesencia de agua"
+--v264
+Lang["I_265826"] = "Llave de Forjallamas de fraternidad"	
+Lang["I_265830"] = "Llave de Forjallamas de fraternidad"	
+Lang["I_265843"] = "Llave de la reserva de fraternidad"	
+Lang["I_265845"] = "Llave Auchenai de fraternidad"	
+Lang["I_265847"] = "Llave forjada de distorsión de fraternidad"	
+Lang["I_265849"] = "Llave del tiempo de fraternidad"	
+
 
 
 -- QUESTS - Classic

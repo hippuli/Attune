@@ -439,6 +439,14 @@ Lang["I_17329"] = "Hand von Lucifron"
 Lang["I_17331"] = "Hand von Gehennas"
 Lang["I_17330"] = "Hand von Sulfuron"
 Lang["I_17333"] = "Wässrige Quintessenz"
+--v264
+Lang["I_265826"] = "Kommunaler flammengeschmiedeter Schlüssel"
+Lang["I_265830"] = "Kommunaler flammengeschmiedeter Schlüssel"	
+Lang["I_265843"] = "Kommunaler Schlüssel des Kessels"	
+Lang["I_265845"] = "Kommunaler Schlüssel der Auchenai"	
+Lang["I_265847"] = "Kommunaler warpgeschmiedeter Schlüssel"	
+Lang["I_265849"] = "Kommunaler Schlüssel der Zeit"	
+
 
 
 -- QUESTS - Classic

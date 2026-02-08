@@ -439,6 +439,14 @@ Lang["I_17329"] = "Hand of Lucifron"
 Lang["I_17331"] = "Hand of Gehennas"
 Lang["I_17330"] = "Hand of Sulfuron"
 Lang["I_17333"] = "Aqual Quintessence"
+--v264
+Lang["I_265826"] = "Communal Flamewrought Key"
+Lang["I_265830"] = "Communal Flamewrought Key"	
+Lang["I_265843"] = "Communal Reservoir Key"	
+Lang["I_265845"] = "Communal Auchenai Key"	
+Lang["I_265847"] = "Communal Warpforged Key"	
+Lang["I_265849"] = "Communal Key of Time"	
+
 
 
 -- QUESTS - Classic

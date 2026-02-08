@@ -439,6 +439,14 @@ Lang["I_17329"] = "Main de Lucifron"
 Lang["I_17331"] = "Main de Gehennas"
 Lang["I_17330"] = "Main de Sulfuron"
 Lang["I_17333"] = "Quintessence aquatique"
+--v264
+Lang["I_265826"] = "Clé en flammes forgées communautaire"
+Lang["I_265830"] = "Clé en flammes forgées communautaire"	
+Lang["I_265843"] = "Clé du réservoir communautaire"	
+Lang["I_265845"] = "Clé auchenaï communautaire"	
+Lang["I_265847"] = "Clé dimensionnelle communautaire"	
+Lang["I_265849"] = "Clé du Temps communautaire"	
+
 
 
 -- QUESTS - Classic
