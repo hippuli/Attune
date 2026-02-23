@@ -8,8 +8,8 @@
 --
 -------------------------------------------------------------------------
 
--- Done in 266
---  Fixed an issue where heroic keys were not being detected correctly
+-- Done in 267
+--  Removed a deprecated feature (export to CSV)
 
 -------------------------------------------------------------------------
 -- ADDON VARIABLES
@@ -31,7 +31,7 @@ local attunelocal_brokerlabel = nil
 
 
 local attunelocal_game_version = WOW_PROJECT_CLASSIC -- WOW_PROJECT_MAINLINE = 1 (retail),  WOW_PROJECT_CLASSIC = 2 (vanilla classic)
-local attunelocal_version = "266"  					-- change here, and in TOC x2
+local attunelocal_version = "267"  					-- change here, and in TOC x2
 local attunelocal_prefix = "Attune_Channel"			-- used for addon chat communications
 local attunelocal_versionprefix = "Attune_Version_" .. attunelocal_game_version 	-- used for addon version check (and only from this game version)
 local attunelocal_syncprefix = "Attune_Sync"		-- used for addon version check
@@ -2883,14 +2883,12 @@ function Attune_ToggleView(noToggle)
 			end)
 			syncGroup:AddChild(sync)
 
-			local export1 = AceGUI:Create("Button")
-			export1:SetText(AttuneLang["Export to CSV"])
-			export1:SetCallback("OnClick", function()
-				Attune_ExportToCSV()
-			end)
-			syncGroup:AddChild(export1)
-
-
+			-- local export1 = AceGUI:Create("Button")
+			-- export1:SetText(AttuneLang["Export to CSV"])
+			-- export1:SetCallback("OnClick", function()
+			-- 	Attune_ExportToCSV()
+			-- end)
+			-- syncGroup:AddChild(export1)
 
 		attunelocal_guildframe:AddChild(syncGroup)
 
@@ -4002,7 +4000,7 @@ end
 -------------------------------------------------------------------------
 -- encode data and show popup to copy it
 -------------------------------------------------------------------------
-
+--[[
 function Attune_ExportToCSV()
 
 	attunelocal_data = {}
@@ -4098,7 +4096,7 @@ function Attune_ExportToCSV()
 	StaticPopup_Show ("EXPORT_ATTUNE_CSV")
 
 end
-
+]]
 
 
 -------------------------------------------------------------------------
