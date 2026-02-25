@@ -8,8 +8,8 @@
 --
 -------------------------------------------------------------------------
 
--- Done in 267
---  Removed a deprecated feature (export to CSV)
+-- Done in 268
+--  Fixed an issue with the attune progress calculation on Heroic keys
 
 -------------------------------------------------------------------------
 -- ADDON VARIABLES
@@ -31,7 +31,7 @@ local attunelocal_brokerlabel = nil
 
 
 local attunelocal_game_version = WOW_PROJECT_CLASSIC -- WOW_PROJECT_MAINLINE = 1 (retail),  WOW_PROJECT_CLASSIC = 2 (vanilla classic)
-local attunelocal_version = "267"  					-- change here, and in TOC x2
+local attunelocal_version = "268"  					-- change here, and in TOC x2
 local attunelocal_prefix = "Attune_Channel"			-- used for addon chat communications
 local attunelocal_versionprefix = "Attune_Version_" .. attunelocal_game_version 	-- used for addon version check (and only from this game version)
 local attunelocal_syncprefix = "Attune_Sync"		-- used for addon version check
@@ -3237,21 +3237,26 @@ function Attune_ShowResultList(title)
 
 	-- parse all recorded toons and get their progress
 	for kt, t in pairs(Attune_DB.toons) do
-		-- calculate how many steps this toon has done on the attune
-		local attuneDone = {}
-		if t.done ~= nil then 
-			for i, d in pairs(t.done) do
-				local Ids = Attune_split(i, "-")
-				if attuneDone[Ids[1]] == nil then attuneDone[Ids[1]] = 0 end
-				attuneDone[Ids[1]] = attuneDone[Ids[1]] +1
-			end
 
-			if t.attuned == nil then t.attuned = {} end
-			for i, a in pairs(Attune_Data.attunes) do
-				if attuneDone[a.ID] == nil then attuneDone[a.ID] = 0 end
-				t.attuned[a.ID] = math.floor(100*(attuneDone[a.ID]/attuneSteps[a.ID]))
-			end
-		end
+        if t.attuned == nil then t.attuned = {} end
+        for i, a in pairs(Attune_Data.attunes) do
+            if t.attuned[a.ID] == nil then t.attuned[a.ID] = 0 end
+            if t.attuned[a.ID] ~= 100 then 
+
+                -- calculate how many steps this toon has done on that attune
+                local attuneDone = {}
+                local attuneStepsDone = 0
+                if t.done ~= nil then 
+                    for i, d in pairs(t.done) do
+                        local Ids = Attune_split(i, "-")
+                        if Ids[1] == a.ID then
+                            attuneStepsDone = attuneStepsDone + 1
+                        end
+                    end
+                    t.attuned[a.ID] = math.floor(100*(attuneStepsDone/attuneSteps[a.ID]))
+                end
+            end
+        end
 	end
 
 
