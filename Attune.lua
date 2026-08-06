@@ -8,8 +8,8 @@
 --
 -------------------------------------------------------------------------
 
--- Done in 268
---  Fixed an issue with the attune progress calculation on Heroic keys
+-- Done in 270
+--  Updated to the latest wow release
 
 -------------------------------------------------------------------------
 -- ADDON VARIABLES
@@ -28,10 +28,11 @@ local Attune_Broker = nil
 local attunelocal_minimapicon = LibStub("LibDBIcon-1.0")
 local attunelocal_brokervalue = nil
 local attunelocal_brokerlabel = nil
+local attunelocal_settingsCategoryID = nil
 
 
 local attunelocal_game_version = WOW_PROJECT_CLASSIC -- WOW_PROJECT_MAINLINE = 1 (retail),  WOW_PROJECT_CLASSIC = 2 (vanilla classic)
-local attunelocal_version = "268"  					-- change here, and in TOC x2
+local attunelocal_version = "270"  					-- change here, and in comments above
 local attunelocal_prefix = "Attune_Channel"			-- used for addon chat communications
 local attunelocal_versionprefix = "Attune_Version_" .. attunelocal_game_version 	-- used for addon version check (and only from this game version)
 local attunelocal_syncprefix = "Attune_Sync"		-- used for addon version check
@@ -486,7 +487,9 @@ local attune_options = {
 
 function Attune:OnInitialize()
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("Attune", attune_options, nil)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Attune"):SetParent(InterfaceOptionsFramePanelContainer)
+	local settingsFrame, settingsCategoryID = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Attune")
+	settingsFrame:SetParent(InterfaceOptionsFramePanelContainer)
+	attunelocal_settingsCategoryID = settingsCategoryID
 
 end
 
@@ -675,7 +678,9 @@ function Attune:OnEnable()
 			if button=="LeftButton" then
 				Attune_SlashCommandHandler("")
 			elseif button=="RightButton" then
-                Settings.OpenToCategory('Attune')
+				if attunelocal_settingsCategoryID then
+					Settings.OpenToCategory(attunelocal_settingsCategoryID)
+				end
 			end
 		end,
 		OnTooltipShow = function(tooltip)
@@ -1162,7 +1167,7 @@ function Attune:BAG_UPDATE(event)
 				local countNeeded = 1
 				if s.COUNT ~= nil then countNeeded = s.COUNT end
 
-				Attune_DB.toons[attunelocal_charKey].items[s.ID_WOWHEAD] = GetItemCount(s.ID_WOWHEAD, 1)
+				Attune_DB.toons[attunelocal_charKey].items[s.ID_WOWHEAD] = GetItemCount(tonumber(s.ID_WOWHEAD), 1) or 0	-- must be a number: a numeric string is read as an item name
 					if Attune_DB.toons[attunelocal_charKey].items[s.ID_WOWHEAD] >= countNeeded then   --check bags and bank
 
 					if Attune_DB.toons[attunelocal_charKey].done[s.ID_ATTUNE .. "-" .. s.ID] == nil then
@@ -1216,7 +1221,7 @@ function Attune:UPDATE_FACTION(event)
 
 				local name, _, _, _, _, earnedValue = GetFactionInfoByID(s.LOCATION)
 				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION] = {}
-				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].earned = earnedValue
+				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].earned = earnedValue or 0	-- nil for a faction this toon hasn't discovered yet
 				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].name = name or AttuneLang["Unknown Reputation"]
 				--repeat
 				--	local name, _, _, _, _, earnedValue = GetFactionInfo(factionIndex)
@@ -1321,7 +1326,7 @@ function Attune_CheckProgress()
 							local factionIndex = 1
 							local name, _, _, _, _, earnedValue = GetFactionInfoByID(s.LOCATION)
 							att.reps[s.LOCATION] = {}
-							att.reps[s.LOCATION].earned = earnedValue
+							att.reps[s.LOCATION].earned = earnedValue or 0	-- nil for a faction this toon hasn't discovered yet
 							att.reps[s.LOCATION].name = name or AttuneLang["Unknown Reputation"]
 							--repeat
 							--	local name, _, _, _, _, earnedValue = GetFactionInfo(factionIndex)
@@ -1356,8 +1361,9 @@ function Attune_CheckProgress()
 						if s.TYPE == "Item" then
 							local countNeeded = 1
 							if s.COUNT ~= nil then countNeeded = s.COUNT end
-							if GetItemCount(s.ID_WOWHEAD, 1) >= countNeeded then   --check bags and bank
-								att.items[s.ID_WOWHEAD] = GetItemCount(s.ID_WOWHEAD, 1);
+							local itemCount = GetItemCount(tonumber(s.ID_WOWHEAD), 1) or 0	-- must be a number: a numeric string is read as an item name
+							if itemCount >= countNeeded then   --check bags and bank
+								att.items[s.ID_WOWHEAD] = itemCount;
 								att.done[a.ID .. "-" .. s.ID] = 1
 							end
 						end
