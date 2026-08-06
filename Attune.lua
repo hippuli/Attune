@@ -1208,6 +1208,40 @@ end
 -- EVENT: Rep changed
 -------------------------------------------------------------------------
 
+-- The client's GetFactionInfoByID() barValue/barMin/barMax describe
+-- progress WITHIN the current reputation standing only - on this client
+-- build they are not on the old vanilla -42000..42000 scale that
+-- AttuneData.lua's ID_WOWHEAD thresholds were authored against, which is
+-- why comparing them directly was wrong for every faction, not just
+-- edge cases (that mismatch is also why the addon needed a manual
+-- "OFFSET" hack for at least one faction already).
+--
+-- Fix: rebuild an absolute-equivalent point total ourselves from the
+-- live standing + bar values, using fixed tier widths that are always
+-- true (Blizzard guarantees barMin <= barValue <= barMax for the
+-- CURRENT standing, and barMax - barMin equals that standing's known
+-- width), regardless of what convention barValue itself follows.
+local Attune_TierFloor = {0, 36000, 39000, 42000, 45000, 51000, 63000, 84000} -- standingId 1..8, zeroed at the Hated floor
+local Attune_TierWidth = {36000, 3000, 3000, 3000, 6000, 12000, 21000, 0}     -- width of each tier (0 = Exalted, it's a cap)
+
+-- Converts a step's raw ID_WOWHEAD threshold (authored on the old
+-- vanilla -42000..42000 scale) into the same zero-at-Hated scale below.
+function Attune_RequiredPoints(points)
+	return (tonumber(points) or 0) + 42000
+end
+
+-- Rebuilds "points earned" on that same zero-at-Hated scale from the
+-- live standing/bar values.
+function Attune_EarnedPoints(standingId, barMin, barMax, barValue)
+	if standingId == nil then return nil end
+	if standingId >= 8 then return Attune_TierFloor[8] end
+	local progressInTier = (barValue or 0) - (barMin or 0)
+	if progressInTier < 0 then progressInTier = 0 end
+	local width = Attune_TierWidth[standingId] or 0
+	if width > 0 and progressInTier > width then progressInTier = width end
+	return Attune_TierFloor[standingId] + progressInTier
+end
+
 function Attune:UPDATE_FACTION(event)
 
 	local refreshNeeded = false
@@ -1219,9 +1253,11 @@ function Attune:UPDATE_FACTION(event)
 				--loop on the all the character's factions
 				local factionIndex = 1
 
-				local name, _, _, _, _, earnedValue = GetFactionInfoByID(s.LOCATION)
+				local name, _, standingId, barMin, barMax, barValue = GetFactionInfoByID(s.LOCATION)
+				local earnedPoints = Attune_EarnedPoints(standingId, barMin, barMax, barValue)
 				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION] = {}
-				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].earned = earnedValue or 0	-- nil for a faction this toon hasn't discovered yet
+				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].earned = earnedPoints or 0	-- nil for a faction this toon hasn't discovered yet
+				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].standingId = standingId
 				Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].name = name or AttuneLang["Unknown Reputation"]
 				--repeat
 				--	local name, _, _, _, _, earnedValue = GetFactionInfo(factionIndex)
@@ -1232,7 +1268,7 @@ function Attune:UPDATE_FACTION(event)
 				--	factionIndex = factionIndex + 1
 				--until factionIndex > 200
 
-				if Attune_DB.toons[attunelocal_charKey].reps[s.LOCATION].earned >= tonumber(s.ID_WOWHEAD) then
+				if earnedPoints ~= nil and earnedPoints >= Attune_RequiredPoints(s.ID_WOWHEAD) then
 
 					if Attune_DB.toons[attunelocal_charKey].done[s.ID_ATTUNE .. "-" .. s.ID] == nil then
 						local faction = UnitFactionGroup("player")
@@ -1324,9 +1360,11 @@ function Attune_CheckProgress()
 
 							--loop on the all the character's factions
 							local factionIndex = 1
-							local name, _, _, _, _, earnedValue = GetFactionInfoByID(s.LOCATION)
+							local name, _, standingId, barMin, barMax, barValue = GetFactionInfoByID(s.LOCATION)
+							local earnedPoints = Attune_EarnedPoints(standingId, barMin, barMax, barValue)
 							att.reps[s.LOCATION] = {}
-							att.reps[s.LOCATION].earned = earnedValue or 0	-- nil for a faction this toon hasn't discovered yet
+							att.reps[s.LOCATION].earned = earnedPoints or 0	-- nil for a faction this toon hasn't discovered yet
+							att.reps[s.LOCATION].standingId = standingId
 							att.reps[s.LOCATION].name = name or AttuneLang["Unknown Reputation"]
 							--repeat
 							--	local name, _, _, _, _, earnedValue = GetFactionInfo(factionIndex)
@@ -1337,7 +1375,7 @@ function Attune_CheckProgress()
 							--	factionIndex = factionIndex + 1
 							--until factionIndex > 200
 
-							if att.reps[s.LOCATION].earned >= tonumber(s.ID_WOWHEAD) then
+							if earnedPoints ~= nil and earnedPoints >= Attune_RequiredPoints(s.ID_WOWHEAD) then
 								text = "|TInterface\\AddOns\\Attune\\Images\\success:16|t"
 								att.done[a.ID .. "-" .. s.ID] = 1
 							end
@@ -2076,11 +2114,21 @@ end
 
 function showPatchStep(s)
 	local showStep = false
-	if (s.VALIDFROM == nil and s.VALIDTO == nil) then 
+	if (s.VALIDFROM == nil and s.VALIDTO == nil) then
 		showStep = true
 	else
-		if (s.VALIDFROM ~= nil and patch >= s.VALIDFROM) then showStep = true end
-		if (s.VALIDTO ~= nil and patch < s.VALIDTO) then showStep = true end
+		-- Confirmed on the Anniversary client: at tocversion 20506 exactly
+		-- (GetBuildInfo()'s 4th return, verified in-game), the live
+		-- requirement is still the pre-relaxation one (e.g. Revered with
+		-- Thrallmar, not Honored) - i.e. the boundary value itself belongs
+		-- to VALIDTO, not VALIDFROM. The original >=/< split put the
+		-- boundary on the VALIDFROM side, which is why every one of these
+		-- gated steps (all authored against the same 20506 threshold) was
+		-- showing the wrong, too-lenient requirement. Flipped to </<=  so
+		-- the boundary favors VALIDTO; this still auto-switches to
+		-- VALIDFROM once the client's tocversion actually moves past 20506.
+		if (s.VALIDFROM ~= nil and patch > s.VALIDFROM) then showStep = true end
+		if (s.VALIDTO ~= nil and patch <= s.VALIDTO) then showStep = true end
 	end
 	return showStep
 end
@@ -2230,18 +2278,24 @@ function Attune_CreateNode(step, parent, posX, posY)
 		elseif step.TYPE == "Rep" then
 			GameTooltip:SetOwner(fnode,"ANCHOR_NONE")
 			GameTooltip:SetPoint("TOPLEFT", fnode,"TOPRIGHT", 10, 0)
-			local tempRep = Attune_DB.toons[attunelocal_charKey].reps[step.LOCATION].earned
-			local tempGoal = step.ID_WOWHEAD
-			if tonumber(tempRep) > tonumber(step.ID_WOWHEAD) then tempRep = step.ID_WOWHEAD end
+			local repInfo = Attune_DB.toons[attunelocal_charKey].reps[step.LOCATION]
+			local earnedPoints = repInfo.earned -- zero-at-Hated scale from Attune_EarnedPoints
+			local requiredPoints = Attune_RequiredPoints(step.ID_WOWHEAD)
+			local displayRep = (tonumber(earnedPoints) or 0) - 42000 -- back to the old -42000..42000 scale for display
+			if tonumber(displayRep) > tonumber(step.ID_WOWHEAD) then displayRep = step.ID_WOWHEAD end
 
-			attunelocal_frame:SetStatusText("" .. Attune_DB.toons[attunelocal_charKey].reps[step.LOCATION].name)
-			GameTooltip:SetText("" .. Attune_DB.toons[attunelocal_charKey].reps[step.LOCATION].name)
-			GameTooltip:AddLine(AttuneLang["Current progress"]..": ".. tempRep .. "/" ..step.ID_WOWHEAD, 0.5, 0.5, 0.5, 1)
+			attunelocal_frame:SetStatusText("" .. repInfo.name)
+			GameTooltip:SetText("" .. repInfo.name)
+			GameTooltip:AddLine(AttuneLang["Current progress"]..": ".. displayRep .. "/" ..step.ID_WOWHEAD, 0.5, 0.5, 0.5, 1)
 			if step.OFFSET ~= nil then
-				tempGoal = step.ID_WOWHEAD + step.OFFSET
-				tempRep = tempRep + step.OFFSET
+				requiredPoints = requiredPoints + step.OFFSET
+				earnedPoints = (tonumber(earnedPoints) or 0) + step.OFFSET
 			end
-			GameTooltip:AddLine(AttuneLang["Completion"]..": " .. math.floor(100*tonumber(tempRep)/tonumber(tempGoal)).."%", 0.5, 0.5, 0.5, 1)
+			local pct = 0
+			if earnedPoints ~= nil and tonumber(requiredPoints) > 0 then
+				pct = math.floor(100 * math.min(tonumber(earnedPoints), tonumber(requiredPoints)) / tonumber(requiredPoints))
+			end
+			GameTooltip:AddLine(AttuneLang["Completion"]..": " .. pct .."%", 0.5, 0.5, 0.5, 1)
 
 			fnode:SetScript("OnMouseUp", function(self, button)
 				if button == "RightButton" then Attune_ShowWebsiteURL("faction=" .. step.LOCATION)	end
