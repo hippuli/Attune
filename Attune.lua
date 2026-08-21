@@ -31,7 +31,7 @@ local attunelocal_brokerlabel = nil
 local attunelocal_settingsCategoryID = nil
 
 
-local attunelocal_game_version = WOW_PROJECT_CLASSIC -- WOW_PROJECT_MAINLINE = 1 (retail),  WOW_PROJECT_CLASSIC = 2 (vanilla classic)
+local attunelocal_game_version = WOW_PROJECT_ID or WOW_PROJECT_CLASSIC -- WOW_PROJECT_MAINLINE = 1 (retail),  WOW_PROJECT_CLASSIC = 2 (vanilla classic)
 local attunelocal_version = "270"  					-- change here, and in comments above
 local attunelocal_prefix = "Attune_Channel"			-- used for addon chat communications
 local attunelocal_versionprefix = "Attune_Version_" .. attunelocal_game_version 	-- used for addon version check (and only from this game version)
@@ -395,7 +395,7 @@ local attune_options = {
 					func = function(info, val)
 						for kt, t in pairs(Attune_DB.toons) do
 							if kt ~= attunelocal_charKey then
-								if t.status ~= nil then
+								if t.survey ~= nil then
 									if t.survey < time() - attunelocal_inactivity then
 										Attune_DB.toons[kt] = nil
 									end
@@ -644,7 +644,7 @@ function Attune:OnEnable()
 
 
 	-- sending a couple version checks to make sure people update to the latest version
-	guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
+	local guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
 	if guildName ~= nil then
 		C_Timer.After(11, function()
 			if attunelocal_myguild ~= "" then Attune:SendCommMessage(attunelocal_versionprefix, attunelocal_version, "GUILD", ""); end
@@ -706,7 +706,7 @@ function Attune:OnEnable()
 
 	if st ~= nil then -- not top level
 		--get actual attune (remove expac/group)
-		expac, group, sel = strsplit("\001", AttuneLastViewed);
+		local expac, group, sel = strsplit("\001", AttuneLastViewed);
 		if sel ~= "" and sel ~= nil then
 			aid = sel
 		end
@@ -1688,7 +1688,7 @@ end
 
 function Attune_Frame()
 
-	guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
+	local guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
 	if guildName ~= nil then attunelocal_myguild = guildName end
 
 
@@ -3166,7 +3166,7 @@ function Attune_ToggleView(noToggle)
 			local st, le = string.find(selection, "\001")
 			if st ~= nil then -- not top level
 				--get actual attune (remove expac/group)
-				expac, group, sel = strsplit("\001", selection);
+				local expac, group, sel = strsplit("\001", selection);
 				if sel ~= "" and sel ~= nil then
 					AttuneLastViewed = selection
 					Attune_Select(sel)
@@ -3761,8 +3761,8 @@ function Attune_SendRequestResults(surveyRequestor)
 	local meta = {}
 	meta.l = UnitLevel("player")
 	local attunelocal_faction = UnitFactionGroup("player")
-	_, classFile = UnitClass("player")
-	_, raceFile = UnitRace("player")
+	local _, classFile = UnitClass("player")
+	local _, raceFile = UnitRace("player")
 
 	local g = UnitSex("player")
 	meta.g = 'male'
@@ -3824,8 +3824,8 @@ function Attune_SendPushInfo(step)
 		local meta = {}
 		meta.l = UnitLevel("player")
 		local attunelocal_faction = UnitFactionGroup("player")
-		_, classFile = UnitClass("player")
-		_, raceFile = UnitRace("player")
+		local _, classFile = UnitClass("player")
+		local _, raceFile = UnitRace("player")
 
 		local g = UnitSex("player")
 		meta.g = 'male'
@@ -4906,7 +4906,7 @@ end
 
 function Attune_RaidPlannerFrame()
 
-	guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
+	local guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
 	if guildName ~= nil then attunelocal_myguild = guildName end
 
 	if Attune_DB.raidPlans[attunelocal_faction][Attune_DB.raidSelection[attunelocal_faction]] == nil then Attune_DB.raidPlans[attunelocal_faction][Attune_DB.raidSelection[attunelocal_faction]] = {} end
